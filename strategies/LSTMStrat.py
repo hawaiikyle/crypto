@@ -55,30 +55,40 @@ class Strategy:
         "60": 0.02,
         "120": 0.01
     }
-    # Number of time bins for short and long term
-    short_term = 8
-    long_term = 21
+
     
     stoploss=-.2
     # how long the model is good for?
-    model_timeframe='4h'
-    memory_len=10
-    target_col_index=5
+    model_timeframe='6h' # how much back data do you need
     
-    def __init__(self, start_data=[],frequency='10min'):
-        df = Strategy.format_data(updated_data=start_data,frequency=frequency)
+    memory_len=10  # how many time intervals the model looks at
+    target_col_index=5 # 
+    
+    
+    def __init__(self,
+                 frequency='1min',
+                 model_path='lstm10hour_5features/',
+                 scaler_path='lstm2_2month_30minfuture_rolling_10_blocks_scalar.pkl'
+                ):
+        #df = Strategy.format_data(updated_data=start_data,frequency=frequency)
         
-
-        self.df =df
-
+        self.model = tensorflow.keras.models.load_model(model_path)
+        self.scaler=pickle.load(open(scaler_path,'rb'))
         self.frequency = frequency
 
         
-    @staticmethod
-    def format_data(updated_data,frequency,memory_len = memory_len  ):
+        
+    def predict(self):
+        prediction_unscaled = self.model.predict(self.lstm_data)
+        prediction=self.scaler.inverse_transform([list(np.append([0]*5,x)) for x in prediction_unscaled])[:,self.target_col_index]
+
+        return({'lastprice':self.df.open_price.iloc[-1]},'prediction30min': prediction[-1]} )
+    
+
+    def format_data(self,updated_data,frequency='1min',memory_len = memory_len):
         df = pd.DataFrame(updated_data,columns=['price','datetime'])
         df.datetime =df.datetime
-        df.datetime = pd.to_datetime(df.datetime)
+        df.datetime = pd.to_datetime(df.datetime,unit='ms')
         df = df.set_index('datetime')
     
         # Populate Group Indicators
@@ -87,71 +97,48 @@ class Strategy:
                 return listt[k]
             except:
                 return()
-    
-        df = df.groupby(pd.Grouper(freq='5min',origin=base,closed='right')).agg(
+        
+        ######### This is kinda annoying ########
+        base=df.index.max()-pd.Timedelta(hours=100000)
+        #########################################
+        
+        #### Make the columns from the data #####
+        df = df.groupby(pd.Grouper(freq=frequency,origin=base,closed='right')).agg(
             open_price = pd.NamedAgg(column='price',aggfunc=lambda x: nth(x,0)),
             high=pd.NamedAgg(column='price',aggfunc=max),
             low=pd.NamedAgg(column='price',aggfunc=min),
             close_price = pd.NamedAgg(column='price',aggfunc=lambda x: nth(x,-1)),
             tradecount=pd.NamedAgg(column='price',aggfunc=len),
-     #       mean=pd.NamedAgg(column='price',aggfunc=np.mean),
+      #      mean=pd.NamedAgg(column='price',aggfunc=np.mean),
       #      median=pd.NamedAgg(column='price',aggfunc=np.median),
-            
-    
             )
+        
+        
+        # Looks for max of 30 min bins
         min30=[0]*memory_len 
         for i in range(memory_len,df.shape[0]):
             min30.append(max(df.high[i-memory_len:i]))
+
         df['high30min'] = min30
-        return df[memory_len+1:]
-
-    @staticmethod
-    def populate_indicators( dataframe: DataFrame) -> DataFrame:
-    # this will populate all the indicators that will determine the buy/sell flags
-        Y_pred_unscaled=model.predict(test)
-        Y_pred=np.append([0]*memory_len,scaler.inverse_transform(
-                [list(np.append([0]*target_col_index,x)) for x in Y_pred_unscaled])[:,5])
         
-        dataframe['lstm_30_min_high'] = Y_pred
+        ###########################################
+        
+        self.lstm_data = self.lstm_slice(df)
+        self.df = df
+        self.target_col_index=5  # make sure that the predicted col is noted
+        ###########################################
+
         
 
-        return dataframe[memory_len+1:]
-    
-    @staticmethod 
-    def populate_buy_trend(dataframe: DataFrame):
-        """
-    
-        :param dataframe: DataFrame
-        :return: DataFrame with buy column
-        """
-        dataframe.loc[
-            (
-                cdataframe['close_price']< dataframe['lstm_30_min_high'])
-            ),
-            'buy'] = 1
-    
-        return dataframe
-    
-    @staticmethod
-    def populate_sell_trend( dataframe: DataFrame) -> DataFrame:
-        """
-        Based on TA indicators, populates the sell signal for the given dataframe
-        :param dataframe: DataFrame
-        :return: DataFrame with buy column
-        """
-        dataframe.loc[
-            (
-                dataframe['close_price']<dataframe['lstm_30_min_high']
-            ),
-            'sell'] = 1
-        return dataframe
-    
-# Helper functions 
-    def strategy_status(self):
-        if self.df.buy.iloc[-1] ==1:
-            return ('Buy')
-        if self.df.sell.iloc[-1]==1:
-            return('Sell')
-        return('idk')
+    def lstm_slice(self,dataframe,memory_len=memory_len):
+        ''' LSTMs dont want every datapoint just the first every 30 min appeneded to the 30 min back'''
+        offset = dataframe.shape[0]%memory_len
         
+        _data = dataframe[[i%memory_len==offset for i in range(data.shape[0])]].values
+        _data = self.scaler.transform(_data)
+        predict_on=[]
+        for i in range (memory_len, _data.shape[0]):
+            predict_on.append(_data[i-memory_len:i]) 
+        return (np.array(predict_on))
         
+   
