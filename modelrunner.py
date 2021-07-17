@@ -16,23 +16,27 @@ def main():
     strategy = Strategy(model_path='models/lstm10hour_5features/',
                         scaler_path='models/lstm10_hour_5features_scaler.pkl')
     
-    
+    print('Runner is live and model is loaded')  
     while True:
         
         files = glob.glob('bitcoindata/*.csv')
+
         if len(files)>0:
-            print('found data')
-            file = files[0]
-            bitdata= pd.read_csv(file,header=None).values
-            
-            strategy.format_data(bitdata)
-            prediction = pd.DataFrame([strategy.predict()],columns=['lastprice','futureprice30min'])
-            print(prediction)
-            print(glob.glob('bitcoindata/*.csv'))
-            prediction.to_csv('predictiondata/predictiondata.csv')
+
             try:
+                file = files[0]
+                print(f'found data{file}')
+                
+                bitdata= pd.read_csv(file,header=None).values
+                
+                strategy.format_data(bitdata)
+                prediction = pd.DataFrame([strategy.predict()],columns=['lastprice','futureprice30min'])
+                print(['sucessfully predicted',prediction])
+                prediction.to_csv('predictiondata/predictiondata.csv')
+    
                 os.remove(file)
             except:
+                print('found file but ran into errors, likely because of io delay')
                 continue
             
             
