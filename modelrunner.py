@@ -13,7 +13,7 @@ from strategies.LSTMStrat import Strategy
 
 def main():
     
-    strategy = Strategy(model_path='models/lstm10hour_5features/',
+    strategy = Strategy(model_path='models/lstm10_hour_5features/',
                         scaler_path='models/lstm10_hour_5features_scaler.pkl')
     
     print('Runner is live and model is loaded')  
