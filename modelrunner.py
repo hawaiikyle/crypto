@@ -28,9 +28,12 @@ def main():
             strategy.format_data(bitdata)
             prediction = pd.DataFrame([strategy.predict()],columns=['lastprice','futureprice30min'])
             print(prediction)
-            
+            print(glob.glob('bitcoindata/*.csv'))
             prediction.to_csv('predictiondata/predictiondata.csv')
-            os.remove(file)
+            try:
+                os.remove(file)
+            except:
+                continue
             
             
             
@@ -38,11 +41,6 @@ def main():
             
             
             
-            
-            
-            
-            
-            os.remove(file)
 
 
 if __name__ == '__main__':
