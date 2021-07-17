@@ -52,7 +52,7 @@ class Strategy:
         prediction_unscaled = self.model.predict(self.lstm_data)
         prediction=self.scaler.inverse_transform([list(np.append([0]*5,x)) for x in prediction_unscaled])[:,self.target_col_index]
 
-        return([self.df.open_price.iloc[-1],prediction[-1]] )
+        return([self.df.index[-1],self.df.open_price.iloc[-1],prediction[-1]] )
     
 
     def format_data(self,updated_data,frequency='1min',memory_len = memory_len):

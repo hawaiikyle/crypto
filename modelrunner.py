@@ -31,7 +31,7 @@ def main():
                 bitdata= pd.read_csv(file,header=None).values
                 
                 strategy.format_data(bitdata)
-                prediction = pd.DataFrame([strategy.predict()],columns=['lastprice','futureprice30min'])
+                prediction = pd.DataFrame([strategy.predict()],columns=['datetime','lastprice','futureprice30min'])
                 prediction['filename'] = file.split('/')[-1].split('.')[0]
                 print(['sucessfully predicted',prediction])
                 prediction.to_csv('predictiondata/prediction_' +file.split('/')[-1])
