@@ -13,7 +13,8 @@ from strategies.LSTMStrat import Strategy
 
 def main():
     
-    strategy = Strategy()
+    strategy = Strategy(model_path='models/lstm10hour_5features/',
+                        scaler_path='models/lstm10_hour_5features_scaler.pkl')
     
     
     while True:
@@ -22,14 +23,14 @@ def main():
         if len(files)>0:
             print('found data')
             file = files[0]
-            bitdata= pd.read_csv(file).values
+            bitdata= pd.read_csv(file,header=None).values
             
             strategy.format_data(bitdata)
-            prediction = pd.DataFrame(strategy.predict())
+            prediction = pd.DataFrame([strategy.predict()],columns=['lastprice','futureprice30min'])
             print(prediction)
             
             prediction.to_csv('predictiondata/predictiondata.csv')
-            os.rm(file)
+            os.remove(file)
             
             
             

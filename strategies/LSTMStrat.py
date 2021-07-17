@@ -1,42 +1,12 @@
-
 from pandas import DataFrame
 import numpy as np
 import pandas as pd
-#----- Here are the functions For the Strategy ---------
-
-def crossed(series1, series2, direction=None):
-    
-    # Just tells me when a trend crosses another trend 
-    
-    if isinstance(series1, np.ndarray):
-        series1 = pd.Series(series1)
-
-    if isinstance(series2, (float, int, np.ndarray, np.integer, np.floating)):
-        series2 = pd.Series(index=series1.index, data=series2)
-
-    if direction is None or direction == "above":
-        above = pd.Series((series1 > series2) & (
-            series1.shift(1) <= series2.shift(1)))
-
-    if direction is None or direction == "below":
-        below = pd.Series((series1 < series2) & (
-            series1.shift(1) >= series2.shift(1)))
-
-    if direction is None:
-        return above or below
-
-    return above if direction == "above" else below
-
-
-def crossed_above(series1, series2):
-    return crossed(series1, series2, "above")
-
-
-def crossed_below(series1, series2):
-    return crossed(series1, series2, "below")
-
-
-
+import datetime as dt
+import tensorflow
+import pickle
+from sklearn.preprocessing import MinMaxScaler
+from tensorflow.keras import Sequential
+from tensorflow.keras.layers import Dense, LSTM, Dropout
 
 # ------ Strategy -----------
 
@@ -82,7 +52,7 @@ class Strategy:
         prediction_unscaled = self.model.predict(self.lstm_data)
         prediction=self.scaler.inverse_transform([list(np.append([0]*5,x)) for x in prediction_unscaled])[:,self.target_col_index]
 
-        return({'lastprice':self.df.open_price.iloc[-1]},'prediction30min': prediction[-1]} )
+        return([self.df.open_price.iloc[-1],prediction[-1]] )
     
 
     def format_data(self,updated_data,frequency='1min',memory_len = memory_len):
@@ -134,7 +104,7 @@ class Strategy:
         ''' LSTMs dont want every datapoint just the first every 30 min appeneded to the 30 min back'''
         offset = dataframe.shape[0]%memory_len
         
-        _data = dataframe[[i%memory_len==offset for i in range(data.shape[0])]].values
+        _data = dataframe[[i%memory_len==offset for i in range(dataframe.shape[0])]].values
         _data = self.scaler.transform(_data)
         predict_on=[]
         for i in range (memory_len, _data.shape[0]):
