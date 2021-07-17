@@ -25,14 +25,16 @@ def main():
 
             try:
                 file = files[0]
+        
                 print(f'found data{file}')
                 
                 bitdata= pd.read_csv(file,header=None).values
                 
                 strategy.format_data(bitdata)
                 prediction = pd.DataFrame([strategy.predict()],columns=['lastprice','futureprice30min'])
+                prediction['filename'] = file.split('/')[-1].split('.')[0]
                 print(['sucessfully predicted',prediction])
-                prediction.to_csv('predictiondata/predictiondata.csv')
+                prediction.to_csv('predictiondata/prediction_' +file.split('/')[-1])
     
                 os.remove(file)
             except:
